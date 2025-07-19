@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="p-6 max-w-7xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Batch Management</h1>
+            <p class="text-gray-600">Manage, merge, split, and transfer between batches</p>
+        </div>
+
+        <!-- Action Buttons and Search -->
+        <div class="mb-6 flex flex-wrap items-center gap-4">
+            <button
+                id="mergeBtn"
+                class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                Merge Batches (<span id="selectedCount">0</span>)
+            </button>
+            <div class="text-sm text-gray-600 flex items-center">
+                Select 2 or more batches to merge
+            </div>
+            <div class="relative ml-auto">
+                <input
+                    type="text"
+                    id="searchField"
+                    placeholder="Search batches by name..."
+                    class="px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                />
+                <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Batches Grid -->
+        <div id="batchesGrid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <!-- Batches will be dynamically generated here -->
+        </div>
+    </div>
+
+    <!-- Merge Modal -->
+    <div id="mergeModal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 class="text-xl font-bold mb-4">Merge Batches</h2>
+            <p class="text-gray-600 mb-4" id="mergeModalText">
+                Are you sure you want to merge 0 batches? This will create a new batch with all vessels combined.
+            </p>
+            <div class="flex gap-3">
+                <button
+                    id="confirmMergeBtn"
+                    class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+                >
+                    Merge
+                </button>
+                <button
+                    id="cancelMergeBtn"
+                    class="flex-1 bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split Modal -->
+    <div id="splitModal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold mb-4">Split Batch</h2>
+            <p class="text-gray-600 mb-4">Drag vessels between batches to split them</p>
+            
+            <div class="grid grid-cols-2 gap-6">
+                <div class="border rounded-lg p-4">
+                    <h3 class="font-semibold mb-3">Batch 1 (<span id="batch1Count">0</span> vessels)</h3>
+                    <div id="batch1Vessels" class="space-y-2">
+                        <!-- Vessels will be added here -->
+                    </div>
+                </div>
+                
+                <div class="border rounded-lg p-4">
+                    <h3 class="font-semibold mb-3">Batch 2 (<span id="batch2Count">0</span> vessels)</h3>
+                    <div id="batch2Vessels" class="space-y-2">
+                        <!-- Vessels will be added here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button
+                    id="confirmSplitBtn"
+                    class="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                    disabled
+                >
+                    Split Batch
+                </button>
+                <button
+                    id="cancelSplitBtn"
+                    class="flex-1 bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liquid Transfer Modal -->
+    <div id="transferModal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 class="text-xl font-bold mb-4">Transfer Liquid</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">From Vessel</label>
+                    <div id="fromVesselInfo" class="p-2 bg-gray-50 rounded">
+                        <!-- Vessel info will be displayed here -->
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">To Vessel</label>
+                    <select id="toVesselSelect" class="w-full p-2 border rounded">
+                        <option value="">Select vessel...</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Amount (L)</label>
+                    <input
+                        id="transferAmount"
+                        type="number"
+                        class="w-full p-2 border rounded"
+                        min="0"
+                    />
+                </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button
+                    id="confirmTransferBtn"
+                    class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                    disabled
+                >
+                    Transfer
+                </button>
+                <button
+                    id="cancelTransferBtn"
+                    class="flex-1 bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Lost Juice Modal -->
+    <div id="lostJuiceModal" class="modal">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h2 class="text-xl font-bold mb-4">Add Lost Juice</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Vessel</label>
+                    <div id="lostJuiceVesselInfo" class="p-2 bg-gray-50 rounded">
+                        <!-- Vessel info will be displayed here -->
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Lost Juice Amount (L)</label>
+                    <input
+                        id="lostJuiceAmount"
+                        type="number"
+                        class="w-full p-2 border rounded"
+                        min="0"
+                        step="0.1"
+                    />
+                </div>
+                
+                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <p class="text-sm text-yellow-800">
+                        <strong>Note:</strong> This will reduce the current volume and increase lost juice for this vessel and its batch.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button
+                    id="confirmLostJuiceBtn"
+                    class="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                    disabled
+                >
+                    Add Lost Juice
+                </button>
+                <button
+                    id="cancelLostJuiceBtn"
+                    class="flex-1 bg-gray-200 text-gray-800 py-2 rounded hover:bg-gray-300"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initial data
+        let batches = [
+            {
+                id: 1,
+                name: "Batch A-001",
+                status: "Active",
+                pressed_juice: 900,
+                free_run_juice: 300,
+                total_initial_juice_quantity: 1200, // 900 + 300
+                lost_juice: 70, // 50 + 20
+                remaining_juice: 1130, // 1200 - 70
+                vessels: [
+                    { id: 1, name: "Vessel V-101", capacity: 1000, initial_juice: 700, lostjuice: 50, currentVolume: 650, liquidType: "Ethanol" },
+                    { id: 2, name: "Vessel V-102", capacity: 800, initial_juice: 300, lostjuice: 20, currentVolume: 280, liquidType: "Ethanol" },
+                    { id: 3, name: "Vessel V-103", capacity: 500, initial_juice: 200, lostjuice: 0, currentVolume: 200, liquidType: "Ethanol" }
+                ]
+            },
+            {
+                id: 2,
+                name: "Batch B-002",
+                status: "Active",
+                pressed_juice: 600,
+                free_run_juice: 200,
+                total_initial_juice_quantity: 800, // 600 + 200
+                lost_juice: 30, // 10 + 20
+                remaining_juice: 770, // 800 - 30
+                vessels: [
+                    { id: 4, name: "Vessel V-201", capacity: 700, initial_juice: 500, lostjuice: 10, currentVolume: 490, liquidType: "Methanol" },
+                    { id: 5, name: "Vessel V-202", capacity: 600, initial_juice: 300, lostjuice: 20, currentVolume: 280, liquidType: "Methanol" }
+                ]
+            },
+            {
+                id: 3,
+                name: "Batch C-003",
+                status: "Pending",
+                pressed_juice: 1000,
+                free_run_juice: 500,
+                total_initial_juice_quantity: 1500, // 1000 + 500
+                lost_juice: 0, // 0 + 0
+                remaining_juice: 1500, // 1500 - 0
+                vessels: [
+                    { id: 6, name: "Vessel V-301", capacity: 1200, initial_juice: 1000, lostjuice: 0, currentVolume: 1000, liquidType: "Acetone" },
+                    { id: 7, name: "Vessel V-302", capacity: 800, initial_juice: 500, lostjuice: 0, currentVolume: 500, liquidType: "Acetone" }
+                ]
+            },
+            {
+                id: 4,
+                name: "Batch D-004",
+                status: "Active",
+                pressed_juice: 1200,
+                free_run_juice: 400,
+                total_initial_juice_quantity: 1600, // 1200 + 400
+                lost_juice: 80, // 60 + 20
+                remaining_juice: 1520, // 1600 - 80
+                vessels: [
+                    { id: 8, name: "Vessel V-401", capacity: 1000, initial_juice: 800, lostjuice: 20, currentVolume: 780, liquidType: "Ethanol" },
+                    { id: 9, name: "Vessel V-402", capacity: 600, initial_juice: 400, lostjuice: 20, currentVolume: 380, liquidType: "Ethanol" }
+                ]
+            },
+            {
+                id: 5,
+                name: "Batch E-005",
+                status: "Pending",
+                pressed_juice: 1500,
+                free_run_juice: 600,
+                total_initial_juice_quantity: 2100, // 1500 + 600
+                lost_juice: 0, // 0 + 0
+                remaining_juice: 2100, // 2100 - 0
+                vessels: [
+                    { id: 10, name: "Vessel V-501", capacity: 1500, initial_juice: 1200, lostjuice: 0, currentVolume: 1200, liquidType: "Methanol" },
+                    { id: 11, name: "Vessel V-502", capacity: 600, initial_juice: 400, lostjuice: 0, currentVolume: 400, liquidType: "Methanol" }
+                ]
+            },
+            {
+                id: 6,
+                name: "Batch F-006",
+                status: "Active",
+                pressed_juice: 1800,
+                free_run_juice: 700,
+                total_initial_juice_quantity: 2500, // 1800 + 700
+                lost_juice: 100, // 80 + 20
+                remaining_juice: 2400, // 2500 - 100
+                vessels: [
+                    { id: 12, name: "Vessel V-601", capacity: 1800, initial_juice: 1500, lostjuice: 30, currentVolume: 1470, liquidType: "Acetone" },
+                    { id: 13, name: "Vessel V-602", capacity: 700, initial_juice: 500, lostjuice: 20, currentVolume: 480, liquidType: "Acetone" }
+                ]
+            }
+        ];
+
+        let selectedBatches = [];
+        let splitBatchId = null;
+        let splitVessels = { batch1: [], batch2: [] };
+        let liquidTransfer = { from: null, to: null, amount: 0 };
+        let lostJuiceData = { vessel: null, amount: 0 };
+
+        // Define available vessel types (from wine_batch_wireframe.html)
+        const vesselTypes = [
+            { name: 'Tank A1', capacity: 1000, liquidType: 'Ethanol', count: 1 },
+            { name: 'Tank B2', capacity: 750, liquidType: 'Ethanol', count: 1 },
+            { name: 'Tank C3', capacity: 500, liquidType: 'Ethanol', count: 3 },
+            { name: 'Barrel D4', capacity: 300, liquidType: 'Ethanol', count: 5 },
+            { name: 'Barrel E5', capacity: 225, liquidType: 'Ethanol', count: 5 },
+            { name: 'Barrel F6', capacity: 150, liquidType: 'Ethanol', count: 10 }
+        ];
+
+        // Utility functions
+        function getVesselUtilization(vessel) {
+            return (vessel.currentVolume / vessel.capacity) * 100;
+        }
+
+        function recalculateBatchSummary(batch) {
+            // Calculate total initial juice from all vessels
+            const totalInitialJuice = batch.vessels.reduce((sum, vessel) => sum + vessel.initial_juice, 0);
+            
+            // Calculate total lost juice from all vessels
+            const totalLostJuice = batch.vessels.reduce((sum, vessel) => sum + vessel.lostjuice, 0);
+            
+            // Calculate remaining juice from all vessels
+            const totalRemainingJuice = batch.vessels.reduce((sum, vessel) => sum + vessel.currentVolume, 0);
+            
+            // For now, we'll distribute pressed and free run proportionally based on the original ratios
+            // This assumes the vessels maintain the same ratio as the original batch
+            let pressedRatio = 0;
+            let freeRunRatio = 0;
+            
+            if (batch.total_initial_juice_quantity > 0) {
+                pressedRatio = batch.pressed_juice / batch.total_initial_juice_quantity;
+                freeRunRatio = batch.free_run_juice / batch.total_initial_juice_quantity;
+            }
+            
+            // Update batch summary
+            batch.total_initial_juice_quantity = totalInitialJuice;
+            batch.pressed_juice = Math.round(totalInitialJuice * pressedRatio);
+            batch.free_run_juice = Math.round(totalInitialJuice * freeRunRatio);
+            batch.lost_juice = totalLostJuice;
+            batch.remaining_juice = totalRemainingJuice;
+        }
+
+        function recalculateMergedBatchSummary(mergedBatch, sourceBatches) {
+            // Sum all the summary values from source batches
+            mergedBatch.pressed_juice = sourceBatches.reduce((sum, batch) => sum + batch.pressed_juice, 0);
+            mergedBatch.free_run_juice = sourceBatches.reduce((sum, batch) => sum + batch.free_run_juice, 0);
+            mergedBatch.total_initial_juice_quantity = sourceBatches.reduce((sum, batch) => sum + batch.total_initial_juice_quantity, 0);
+            mergedBatch.lost_juice = sourceBatches.reduce((sum, batch) => sum + batch.lost_juice, 0);
+            mergedBatch.remaining_juice = mergedBatch.total_initial_juice_quantity - mergedBatch.lost_juice;
+        }
+
+        function recalculateSplitBatchSummary(batch1, batch2, originalBatch) {
+            // Calculate total initial juice for each batch
+            const batch1TotalInitial = batch1.vessels.reduce((sum, vessel) => sum + vessel.initial_juice, 0);
+            const batch2TotalInitial = batch2.vessels.reduce((sum, vessel) => sum + vessel.initial_juice, 0);
+            const totalInitial = batch1TotalInitial + batch2TotalInitial;
+            
+            if (totalInitial === 0) {
+                // If no initial juice, distribute equally
+                batch1.pressed_juice = Math.round(originalBatch.pressed_juice / 2);
+                batch1.free_run_juice = Math.round(originalBatch.free_run_juice / 2);
+                batch1.total_initial_juice_quantity = Math.round(originalBatch.total_initial_juice_quantity / 2);
+                batch1.lost_juice = Math.round(originalBatch.lost_juice / 2);
+                batch1.remaining_juice = Math.round(originalBatch.remaining_juice / 2);
+                
+                batch2.pressed_juice = originalBatch.pressed_juice - batch1.pressed_juice;
+                batch2.free_run_juice = originalBatch.free_run_juice - batch1.free_run_juice;
+                batch2.total_initial_juice_quantity = originalBatch.total_initial_juice_quantity - batch1.total_initial_juice_quantity;
+                batch2.lost_juice = originalBatch.lost_juice - batch1.lost_juice;
+                batch2.remaining_juice = originalBatch.remaining_juice - batch1.remaining_juice;
+            } else {
+                // Distribute based on the ratio of initial juice in vessels
+                const batch1Ratio = batch1TotalInitial / totalInitial;
+                const batch2Ratio = batch2TotalInitial / totalInitial;
+                
+                batch1.pressed_juice = Math.round(originalBatch.pressed_juice * batch1Ratio);
+                batch1.free_run_juice = Math.round(originalBatch.free_run_juice * batch1Ratio);
+                batch1.total_initial_juice_quantity = Math.round(originalBatch.total_initial_juice_quantity * batch1Ratio);
+                batch1.lost_juice = Math.round(originalBatch.lost_juice * batch1Ratio);
+                batch1.remaining_juice = Math.round(originalBatch.remaining_juice * batch1Ratio);
+                
+                batch2.pressed_juice = originalBatch.pressed_juice - batch1.pressed_juice;
+                batch2.free_run_juice = originalBatch.free_run_juice - batch1.free_run_juice;
+                batch2.total_initial_juice_quantity = originalBatch.total_initial_juice_quantity - batch1.total_initial_juice_quantity;
+                batch2.lost_juice = originalBatch.lost_juice - batch1.lost_juice;
+                batch2.remaining_juice = originalBatch.remaining_juice - batch1.remaining_juice;
+            }
+        }
+
+        function updateSelectedCount() {
+            document.getElementById('selectedCount').textContent = selectedBatches.length;
+            document.getElementById('mergeBtn').disabled = selectedBatches.length < 2;
+        }
+
+        function renderBatches() {
+            const grid = document.getElementById('batchesGrid');
+            grid.innerHTML = '';
+
+            const searchTerm = document.getElementById('searchField').value.toLowerCase();
+            const filteredBatches = batches.filter(batch => 
+                batch.name.toLowerCase().includes(searchTerm)
+            );
+
+            filteredBatches.forEach(batch => {
+                const batchElement = createBatchElement(batch);
+                grid.appendChild(batchElement);
+            });
+            attachAddVesselListeners(); // Attach listeners after rendering
+        }
+
+        function createBatchElement(batch) {
+            const div = document.createElement('div');
+            div.className = 'bg-white rounded-lg border shadow-sm';
+            const totalVolume = batch.vessels.reduce((sum, v) => sum + v.currentVolume, 0);
+            const totalCapacity = batch.vessels.reduce((sum, v) => sum + v.capacity, 0);
+            // Use total vessel capacity for bar totals
+            const barTotal = totalCapacity;
+            // Bar 1 values
+            const pressed = batch.pressed_juice;
+            const freeRun = batch.free_run_juice;
+            const empty1 = Math.max(barTotal - (pressed + freeRun), 0);
+            // Bar 2 values
+            const remaining = batch.remaining_juice;
+            const lost = batch.lost_juice;
+            const empty2 = Math.max(barTotal - (remaining + lost), 0);
+            const w = v => barTotal > 0 ? (v / barTotal) * 100 : 0;
+            // Add Vessel dropdown
+            const vesselOptions = vesselTypes
+                .map((vt, idx) => vt.count > 0 ? `<option value="${idx}">${vt.name} (${vt.capacity}L) × ${vt.count}</option>` : '')
+                .join('');
+            div.innerHTML = `
+                <div class="p-4 border-b bg-gray-50">
+                    <div class="mb-2">
+                        <!-- Bar 1: Initial Juice Breakdown -->
+                        <div class="flex w-full h-4 rounded overflow-hidden mb-1 border">
+                            <div class="bg-blue-500 flex items-center justify-center text-[10px] text-white font-semibold cursor-help" style="width:${w(pressed)}%" title="Pressed Juice: ${pressed}L">${pressed > 0 ? pressed + 'L' : ''}</div>
+                            <div class="bg-green-400 flex items-center justify-center text-[10px] text-white font-semibold cursor-help" style="width:${w(freeRun)}%" title="Free Run Juice: ${freeRun}L">${freeRun > 0 ? freeRun + 'L' : ''}</div>
+                            <div class="bg-gray-200 flex items-center justify-center text-[10px] text-gray-700 font-semibold cursor-help" style="width:${w(empty1)}%" title="Empty Capacity: ${empty1}L">${empty1 > 0 ? empty1 + 'L' : ''}</div>
+                        </div>
+                        <div class="flex w-full h-4 rounded overflow-hidden border">
+                            <div class="bg-blue-500 flex items-center justify-center text-[10px] text-white font-semibold cursor-help" style="width:${w(remaining)}%" title="Remaining Juice: ${remaining}L">${remaining > 0 ? remaining + 'L' : ''}</div>
+                            <div class="bg-red-400 flex items-center justify-center text-[10px] text-white font-semibold cursor-help" style="width:${w(lost)}%" title="Lost Juice: ${lost}L">${lost > 0 ? lost + 'L' : ''}</div>
+                            <div class="bg-gray-200 flex items-center justify-center text-[10px] text-gray-700 font-semibold cursor-help" style="width:${w(empty2)}%" title="Empty Capacity: ${empty2}L">${empty2 > 0 ? empty2 + 'L' : ''}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                ${selectedBatches.includes(batch.id) ? 'checked' : ''}
+                                onchange="handleBatchSelect(${batch.id})"
+                                class="w-4 h-4 text-blue-600 rounded"
+                            />
+                            <div>
+                                <h3 class="font-semibold text-gray-900">${batch.name}</h3>
+                                <span class="inline-block px-2 py-1 text-xs rounded-full ${
+                                    batch.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                }">
+                                    ${batch.status}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select class="add-vessel-select border rounded p-1 text-xs" data-batch-id="${batch.id}">
+                                <option value="">Add Vessel...</option>
+                                ${vesselOptions}
+                            </select>
+                        </div>
+                        <button
+                            onclick="initiateSplit(${batch.id})"
+                            class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            title="Split Batch"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-700">
+                        <span><span class="font-semibold">Pressed:</span> ${batch.pressed_juice}L</span>
+                        <span><span class="font-semibold">Free Run:</span> ${batch.free_run_juice}L</span>
+                        <span><span class="font-semibold">Initial Total:</span> ${batch.total_initial_juice_quantity}L</span>
+                        <span><span class="font-semibold">Lost:</span> ${batch.lost_juice}L</span>
+                        <span><span class="font-semibold">Remaining:</span> ${batch.remaining_juice}L</span>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="mb-3">
+                        <div class="text-sm text-gray-600 mb-1">Vessels (${batch.vessels.length})</div>
+                        <div class="text-xs text-gray-500">
+                            Total Volume: ${totalVolume}L / ${totalCapacity}L
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        ${batch.vessels.map((vessel, idx) => createVesselElementWithRemove(vessel, batch, idx)).join('')}
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+
+        function createVesselElement(vessel, batch) {
+            const utilization = getVesselUtilization(vessel);
+            const progressColor = utilization > 90 ? 'bg-red-500' : utilization > 70 ? 'bg-yellow-500' : 'bg-green-500';
+            
+            const otherBatches = batches.filter(b => b.id !== batch.id);
+            
+            return `
+                <div class="border rounded-lg p-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="font-medium text-sm">${vessel.name}</div>
+                            <div class="text-xs text-gray-500">${vessel.liquidType}</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button
+                                onclick="initiateLiquidTransfer(${vessel.id})"
+                                class="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                title="Transfer Liquid"
+                            >
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>${vessel.currentVolume}L</span>
+                            <span>${vessel.capacity}L</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                                class="h-2 rounded-full progress-bar ${progressColor}"
+                                style="width: ${utilization}%"
+                            ></div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-1 flex-wrap">
+                        ${otherBatches.map(targetBatch => `
+                            <button
+                                onclick="moveVessel(${vessel.id}, ${batch.id}, ${targetBatch.id})"
+                                class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                            >
+                                → ${targetBatch.name}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createVesselElementWithRemove(vessel, batch, idx) {
+            const utilization = getVesselUtilization(vessel);
+            const progressColor = utilization > 90 ? 'bg-red-500' : utilization > 70 ? 'bg-yellow-500' : 'bg-green-500';
+            let removeBtn = '';
+            if (vessel.currentVolume === 0) {
+                removeBtn = `<button onclick="removeEmptyVessel(${batch.id}, ${idx})" class="ml-2 p-1 text-red-600 hover:bg-red-100 rounded" title="Remove Vessel">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M8 6v12a2 2 0 002 2h4a2 2 0 002-2V6"/></svg>
+                </button>`;
+            }
+            // Liquid transfer button (always shown)
+            const transferBtn = `<button onclick="initiateLiquidTransfer(${vessel.id})" class="ml-2 p-1 text-blue-600 hover:bg-blue-100 rounded" title="Transfer Liquid">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </button>`;
+            // Lost juice button (always shown)
+            const lostJuiceBtn = `<button onclick="initiateLostJuice(${vessel.id})" class="ml-2 p-1 text-red-600 hover:bg-red-100 rounded" title="Add Lost Juice">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            </button>`;
+            return `
+                <div class="border rounded-lg p-3 flex flex-col">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="font-medium text-sm">${vessel.name}</div>
+                            <div class="text-xs text-gray-500">${vessel.liquidType}</div>
+                        </div>
+                        <div class="flex items-center">${transferBtn}${lostJuiceBtn}${removeBtn}</div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>${vessel.currentVolume}L</span>
+                            <span>${vessel.capacity}L</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="h-2 rounded-full progress-bar ${progressColor}" style="width: ${utilization}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Event handlers
+        function handleBatchSelect(batchId) {
+            if (selectedBatches.includes(batchId)) {
+                selectedBatches = selectedBatches.filter(id => id !== batchId);
+            } else {
+                selectedBatches.push(batchId);
+            }
+            updateSelectedCount();
+            renderBatches();
+        }
+
+        function mergeBatches() {
+            if (selectedBatches.length < 2) return;
+            
+            const batchesToMerge = batches.filter(batch => selectedBatches.includes(batch.id));
+            const allVessels = batchesToMerge.flatMap(batch => batch.vessels);
+            
+            const newBatch = {
+                id: Math.max(...batches.map(b => b.id)) + 1,
+                name: `Merged-${Date.now()}`,
+                status: "Active",
+                vessels: allVessels
+            };
+
+            // Recalculate batch summary for merged batch
+            recalculateMergedBatchSummary(newBatch, batchesToMerge);
+
+            batches = [
+                ...batches.filter(batch => !selectedBatches.includes(batch.id)),
+                newBatch
+            ];
+            
+            selectedBatches = [];
+            updateSelectedCount();
+            hideModal('mergeModal');
+            renderBatches();
+        }
+
+        function initiateSplit(batchId) {
+            const batch = batches.find(b => b.id === batchId);
+            splitBatchId = batchId;
+            splitVessels = { batch1: [batch.vessels[0]], batch2: batch.vessels.slice(1) };
+            renderSplitModal();
+            showModal('splitModal');
+        }
+
+        function renderSplitModal() {
+            document.getElementById('batch1Count').textContent = splitVessels.batch1.length;
+            document.getElementById('batch2Count').textContent = splitVessels.batch2.length;
+            
+            document.getElementById('batch1Vessels').innerHTML = splitVessels.batch1.map(vessel => `
+                <div class="flex items-center justify-between p-2 bg-blue-50 rounded">
+                    <span class="text-sm">${vessel.name}</span>
+                    <button
+                        onclick="moveSplitVessel(${vessel.id}, 'batch2')"
+                        class="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                    >
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+            
+            document.getElementById('batch2Vessels').innerHTML = splitVessels.batch2.map(vessel => `
+                <div class="flex items-center justify-between p-2 bg-green-50 rounded">
+                    <button
+                        onclick="moveSplitVessel(${vessel.id}, 'batch1')"
+                        class="p-1 text-green-600 hover:bg-green-100 rounded"
+                    >
+                        <svg class="w-3 h-3 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                    <span class="text-sm">${vessel.name}</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('confirmSplitBtn').disabled = splitVessels.batch1.length === 0 || splitVessels.batch2.length === 0;
+        }
+
+        function moveSplitVessel(vesselId, toBatch) {
+            const vessel = [...splitVessels.batch1, ...splitVessels.batch2].find(v => v.id === vesselId);
+            const fromBatch = splitVessels.batch1.includes(vessel) ? 'batch1' : 'batch2';
+            
+            if (fromBatch === 'batch1') {
+                splitVessels.batch1 = splitVessels.batch1.filter(v => v.id !== vesselId);
+            } else {
+                splitVessels.batch2 = splitVessels.batch2.filter(v => v.id !== vesselId);
+            }
+            
+            if (toBatch === 'batch1') {
+                splitVessels.batch1.push(vessel);
+            } else {
+                splitVessels.batch2.push(vessel);
+            }
+            
+            renderSplitModal();
+        }
+
+        function executeSplit() {
+            if (splitVessels.batch1.length === 0 || splitVessels.batch2.length === 0) return;
+
+            const originalBatch = batches.find(b => b.id === splitBatchId);
+            const newBatch1 = {
+                ...originalBatch,
+                vessels: splitVessels.batch1
+            };
+            const newBatch2 = {
+                id: Math.max(...batches.map(b => b.id)) + 1,
+                name: `${originalBatch.name}-Split`,
+                status: "Active",
+                vessels: splitVessels.batch2
+            };
+
+            // Recalculate batch summaries for both split batches
+            recalculateSplitBatchSummary(newBatch1, newBatch2, originalBatch);
+
+            batches = [
+                ...batches.filter(batch => batch.id !== splitBatchId),
+                newBatch1,
+                newBatch2
+            ];
+
+            hideModal('splitModal');
+            splitBatchId = null;
+            renderBatches();
+        }
+
+        function moveVessel(vesselId, fromBatchId, toBatchId) {
+            const vessel = batches.find(b => b.id === fromBatchId).vessels.find(v => v.id === vesselId);
+            
+            batches = batches.map(batch => {
+                if (batch.id === fromBatchId) {
+                    const updatedBatch = { ...batch, vessels: batch.vessels.filter(v => v.id !== vesselId) };
+                    recalculateBatchSummary(updatedBatch);
+                    return updatedBatch;
+                }
+                if (batch.id === toBatchId) {
+                    const updatedBatch = { ...batch, vessels: [...batch.vessels, vessel] };
+                    recalculateBatchSummary(updatedBatch);
+                    return updatedBatch;
+                }
+                return batch;
+            });
+            
+            renderBatches();
+        }
+
+        function initiateLiquidTransfer(vesselId) {
+            // Always look up the vessel fresh from the current batches
+            const vessel = batches.flatMap(b => b.vessels).find(v => v.id === vesselId);
+            if (!vessel) return;
+            // Find the batch containing this vessel
+            const batch = batches.find(b => b.vessels.some(v => v.id === vesselId));
+            if (!batch) return;
+            liquidTransfer = { from: vessel, to: null, amount: 0, batchId: batch.id };
+            renderTransferModal();
+            showModal('transferModal');
+        }
+
+        function renderTransferModal() {
+            // Always use the latest vessel and batch data
+            const fromVessel = batches.flatMap(b => b.vessels).find(v => v.id === liquidTransfer.from?.id);
+            if (!fromVessel) return;
+            const batch = batches.find(b => b.id === liquidTransfer.batchId);
+            if (!batch) return;
+            document.getElementById('fromVesselInfo').textContent = 
+                `${fromVessel.name} (${fromVessel.currentVolume}L available)`;
+            const select = document.getElementById('toVesselSelect');
+            select.innerHTML = '<option value="">Select vessel...</option>';
+            // Allow transfer to any vessel in the same batch (except itself)
+            const compatibleVessels = batch.vessels.filter(v => v.id !== fromVessel.id);
+            compatibleVessels.forEach(vessel => {
+                const option = document.createElement('option');
+                option.value = vessel.id;
+                option.textContent = `${vessel.name} (${vessel.capacity - vessel.currentVolume}L capacity available)`;
+                select.appendChild(option);
+            });
+            document.getElementById('transferAmount').value = '';
+            document.getElementById('confirmTransferBtn').disabled = true;
+        }
+
+        function executeLiquidTransfer() {
+            const { from, to, amount } = liquidTransfer;
+            if (!from || !to || amount <= 0) return;
+            batches = batches.map(batch => ({
+                ...batch,
+                vessels: batch.vessels.map(vessel => {
+                    if (vessel.id === from.id) {
+                        return { ...vessel, currentVolume: vessel.currentVolume - amount };
+                    }
+                    if (vessel.id === to.id) {
+                        return { ...vessel, currentVolume: Math.min(vessel.currentVolume + amount, vessel.capacity) };
+                    }
+                    return vessel;
+                })
+            }));
+            hideModal('transferModal');
+            liquidTransfer = { from: null, to: null, amount: 0 };
+            renderBatches();
+        }
+
+        function initiateLostJuice(vesselId) {
+            // Always look up the vessel fresh from the current batches
+            const vessel = batches.flatMap(b => b.vessels).find(v => v.id === vesselId);
+            if (!vessel) return;
+            lostJuiceData = { vessel: vessel, amount: 0 };
+            renderLostJuiceModal();
+            showModal('lostJuiceModal');
+        }
+
+        function renderLostJuiceModal() {
+            const vessel = batches.flatMap(b => b.vessels).find(v => v.id === lostJuiceData.vessel?.id);
+            if (!vessel) return;
+            document.getElementById('lostJuiceVesselInfo').textContent = 
+                `${vessel.name} (Current: ${vessel.currentVolume}L, Lost: ${vessel.lostjuice}L)`;
+            document.getElementById('lostJuiceAmount').value = '';
+            document.getElementById('lostJuiceAmount').max = vessel.currentVolume;
+            document.getElementById('confirmLostJuiceBtn').disabled = true;
+        }
+
+        function executeLostJuice() {
+            const { vessel, amount } = lostJuiceData;
+            if (!vessel || amount <= 0) return;
+            
+            // Find the batch containing this vessel
+            const batch = batches.find(b => b.vessels.some(v => v.id === vessel.id));
+            if (!batch) return;
+            
+            // Update the vessel
+            batches = batches.map(b => ({
+                ...b,
+                vessels: b.vessels.map(v => {
+                    if (v.id === vessel.id) {
+                        return {
+                            ...v,
+                            currentVolume: v.currentVolume - amount,
+                            lostjuice: v.lostjuice + amount
+                        };
+                    }
+                    return v;
+                })
+            }));
+            
+            // Recalculate batch summary
+            const updatedBatch = batches.find(b => b.id === batch.id);
+            if (updatedBatch) {
+                recalculateBatchSummary(updatedBatch);
+            }
+            
+            hideModal('lostJuiceModal');
+            lostJuiceData = { vessel: null, amount: 0 };
+            renderBatches();
+        }
+
+        // Add vessel event handler
+        function handleAddVesselSelect(e) {
+            const select = e.target;
+            const batchId = parseInt(select.getAttribute('data-batch-id'));
+            const vesselTypeIdx = select.value;
+            if (vesselTypeIdx === "") return;
+            const vesselType = vesselTypes[vesselTypeIdx];
+            if (!vesselType || vesselType.count <= 0) return;
+            const batch = batches.find(b => b.id === batchId);
+            if (!batch) return;
+            // Add new vessel with empty juice
+            batch.vessels.push({
+                id: Date.now() + Math.random(),
+                name: vesselType.name,
+                capacity: vesselType.capacity,
+                initial_juice: 0,
+                lostjuice: 0,
+                currentVolume: 0,
+                liquidType: vesselType.liquidType
+            });
+            vesselType.count--;
+            // Recalculate batch summary after adding vessel
+            recalculateBatchSummary(batch);
+            renderBatches();
+        }
+
+        // Remove vessel event handler
+        function removeEmptyVessel(batchId, vesselIdx) {
+            const batch = batches.find(b => b.id === batchId);
+            if (!batch) return;
+            const vessel = batch.vessels[vesselIdx];
+            // Find the vesselType and increment its count
+            const vesselType = vesselTypes.find(vt => vt.name === vessel.name && vt.capacity === vessel.capacity);
+            if (vesselType) vesselType.count++;
+            batch.vessels.splice(vesselIdx, 1);
+            // Recalculate batch summary after removing vessel
+            recalculateBatchSummary(batch);
+            renderBatches();
+        }
+
+        // Attach event listeners after rendering
+        function attachAddVesselListeners() {
+            document.querySelectorAll('.add-vessel-select').forEach(select => {
+                select.removeEventListener('change', handleAddVesselSelect);
+                select.addEventListener('change', handleAddVesselSelect);
+            });
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Merge modal
+            document.getElementById('mergeBtn').addEventListener('click', () => {
+                document.getElementById('mergeModalText').textContent = 
+                    `Are you sure you want to merge ${selectedBatches.length} batches? This will create a new batch with all vessels combined.`;
+                showModal('mergeModal');
+            });
+            
+            document.getElementById('confirmMergeBtn').addEventListener('click', mergeBatches);
+            document.getElementById('cancelMergeBtn').addEventListener('click', () => hideModal('mergeModal'));
+            
+            // Split modal
+            document.getElementById('confirmSplitBtn').addEventListener('click', executeSplit);
+            document.getElementById('cancelSplitBtn').addEventListener('click', () => hideModal('splitModal'));
+            
+            // Transfer modal
+            document.getElementById('toVesselSelect').addEventListener('change', (e) => {
+                const selectedValue = e.target.value;
+                console.log('Selected value:', selectedValue);
+                const vessel = batches.flatMap(b => b.vessels).find(v => v.id == selectedValue);
+                console.log('Found vessel:', vessel);
+                liquidTransfer.to = vessel;
+                updateTransferButton();
+            });
+            
+            document.getElementById('transferAmount').addEventListener('input', (e) => {
+                liquidTransfer.amount = parseFloat(e.target.value) || 0;
+                updateTransferButton();
+            });
+            
+            document.getElementById('confirmTransferBtn').addEventListener('click', executeLiquidTransfer);
+            document.getElementById('cancelTransferBtn').addEventListener('click', () => hideModal('transferModal'));
+            
+            // Lost juice modal
+            document.getElementById('lostJuiceAmount').addEventListener('input', (e) => {
+                lostJuiceData.amount = parseFloat(e.target.value) || 0;
+                const vessel = batches.flatMap(b => b.vessels).find(v => v.id === lostJuiceData.vessel?.id);
+                const maxAmount = vessel ? vessel.currentVolume : 0;
+                document.getElementById('confirmLostJuiceBtn').disabled = lostJuiceData.amount <= 0 || lostJuiceData.amount > maxAmount;
+            });
+            
+            document.getElementById('confirmLostJuiceBtn').addEventListener('click', executeLostJuice);
+            document.getElementById('cancelLostJuiceBtn').addEventListener('click', () => hideModal('lostJuiceModal'));
+            
+            // Close modals when clicking outside
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        hideModal(modal.id);
+                    }
+                });
+            });
+            
+            // Search functionality
+            document.getElementById('searchField').addEventListener('input', renderBatches);
+            
+            // Initial render
+            renderBatches();
+        });
+
+        function updateTransferButton() {
+            const from = batches.flatMap(b => b.vessels).find(v => v.id === liquidTransfer.from?.id);
+            const to = batches.flatMap(b => b.vessels).find(v => v.id === liquidTransfer.to?.id);
+            const amount = Number(liquidTransfer.amount); // Ensure it's a number
+            const maxAmount = Math.min(
+                from?.currentVolume || 0,
+                to ? to.capacity - to.currentVolume : 0
+            );
+            console.log({from, to, amount, maxAmount});
+            document.getElementById('confirmTransferBtn').disabled = !to || amount <= 0 || amount > maxAmount;
+            document.getElementById('transferAmount').max = maxAmount;
+        }
+    </script>
+</body>
+</html>
