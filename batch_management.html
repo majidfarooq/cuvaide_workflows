@@ -43,10 +43,10 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                 </svg>
-                Merge Batches (<span id="selectedCount">0</span>)
+                Blend Batches (<span id="selectedCount">0</span>)
             </button>
             <div class="text-sm text-gray-600 flex items-center">
-                Select 2 or more batches to merge
+                Select 2 or more batches to blend
             </div>
             <div class="relative ml-auto">
                 <input
@@ -70,16 +70,16 @@
     <!-- Merge Modal -->
     <div id="mergeModal" class="modal">
         <div class="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 class="text-xl font-bold mb-4">Merge Batches</h2>
+            <h2 class="text-xl font-bold mb-4">Blend Batches</h2>
             <p class="text-gray-600 mb-4" id="mergeModalText">
-                Are you sure you want to merge 0 batches? This will create a new batch with all vessels combined.
+                Are you sure you want to blend 0 batches? This will create a new batch with all vessels combined.
             </p>
             <div class="flex gap-3">
                 <button
                     id="confirmMergeBtn"
                     class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
                 >
-                    Merge
+                    Blend
                 </button>
                 <button
                     id="cancelMergeBtn"
@@ -235,12 +235,13 @@
             {
                 id: 1,
                 name: "Batch A-001",
-                status: "Active",
+                status: "Pre-Fermentation",
                 pressed_juice: 900,
                 free_run_juice: 300,
                 total_initial_juice_quantity: 1200, // 900 + 300
                 lost_juice: 70, // 50 + 20
                 remaining_juice: 1130, // 1200 - 70
+                tags: ["Chardonnay", "2024"],
                 vessels: [
                     { id: 1, name: "Vessel V-101", capacity: 1000, initial_juice: 700, lostjuice: 50, currentVolume: 650, liquidType: "Ethanol" },
                     { id: 2, name: "Vessel V-102", capacity: 800, initial_juice: 300, lostjuice: 20, currentVolume: 280, liquidType: "Ethanol" },
@@ -250,12 +251,13 @@
             {
                 id: 2,
                 name: "Batch B-002",
-                status: "Active",
+                status: "Fermentation",
                 pressed_juice: 600,
                 free_run_juice: 200,
                 total_initial_juice_quantity: 800, // 600 + 200
                 lost_juice: 30, // 10 + 20
                 remaining_juice: 770, // 800 - 30
+                tags: ["Cabernet", "2024"],
                 vessels: [
                     { id: 4, name: "Vessel V-201", capacity: 700, initial_juice: 500, lostjuice: 10, currentVolume: 490, liquidType: "Methanol" },
                     { id: 5, name: "Vessel V-202", capacity: 600, initial_juice: 300, lostjuice: 20, currentVolume: 280, liquidType: "Methanol" }
@@ -264,12 +266,13 @@
             {
                 id: 3,
                 name: "Batch C-003",
-                status: "Pending",
+                status: "Post Fermentation",
                 pressed_juice: 1000,
                 free_run_juice: 500,
                 total_initial_juice_quantity: 1500, // 1000 + 500
                 lost_juice: 0, // 0 + 0
                 remaining_juice: 1500, // 1500 - 0
+                tags: ["Merlot"],
                 vessels: [
                     { id: 6, name: "Vessel V-301", capacity: 1200, initial_juice: 1000, lostjuice: 0, currentVolume: 1000, liquidType: "Acetone" },
                     { id: 7, name: "Vessel V-302", capacity: 800, initial_juice: 500, lostjuice: 0, currentVolume: 500, liquidType: "Acetone" }
@@ -278,12 +281,13 @@
             {
                 id: 4,
                 name: "Batch D-004",
-                status: "Active",
-                pressed_juice: 800,
+                status: "Aging",
+                pressed_juice: 1200,
                 free_run_juice: 400,
-                total_initial_juice_quantity: 1200, // 800 + 400
-                lost_juice: 40, // 20 + 20
-                remaining_juice: 1160, // 1200 - 40
+                total_initial_juice_quantity: 1600, // 1200 + 400
+                lost_juice: 80, // 60 + 20
+                remaining_juice: 1520, // 1600 - 80
+                tags: ["Syrah", "Reserve"],
                 vessels: [
                     { id: 8, name: "Vessel V-401", capacity: 1000, initial_juice: 800, lostjuice: 20, currentVolume: 780, liquidType: "Ethanol" },
                     { id: 9, name: "Vessel V-402", capacity: 600, initial_juice: 400, lostjuice: 20, currentVolume: 380, liquidType: "Ethanol" }
@@ -292,12 +296,13 @@
             {
                 id: 5,
                 name: "Batch E-005",
-                status: "Pending",
-                pressed_juice: 1000,
+                status: "Blended",
+                pressed_juice: 1500,
                 free_run_juice: 600,
-                total_initial_juice_quantity: 1600, // 1000 + 600
+                total_initial_juice_quantity: 2100, // 1500 + 600
                 lost_juice: 0, // 0 + 0
-                remaining_juice: 1600, // 2100 - 0
+                remaining_juice: 2100, // 2100 - 0
+                tags: ["Pinot Noir"],
                 vessels: [
                     { id: 10, name: "Vessel V-501", capacity: 1500, initial_juice: 1200, lostjuice: 0, currentVolume: 1200, liquidType: "Methanol" },
                     { id: 11, name: "Vessel V-502", capacity: 600, initial_juice: 400, lostjuice: 0, currentVolume: 400, liquidType: "Methanol" }
@@ -306,12 +311,13 @@
             {
                 id: 6,
                 name: "Batch F-006",
-                status: "Active",
-                pressed_juice: 1300,
+                status: "Bottled",
+                pressed_juice: 1800,
                 free_run_juice: 700,
-                total_initial_juice_quantity: 2000, // 1800 + 700
-                lost_juice: 50, // 30 + 20
-                remaining_juice: 1950, // 2000 - 50
+                total_initial_juice_quantity: 2500, // 1800 + 700
+                lost_juice: 100, // 80 + 20
+                remaining_juice: 2400, // 2500 - 100
+                tags: ["Chardonnay", "2023", "Export"],
                 vessels: [
                     { id: 12, name: "Vessel V-601", capacity: 1800, initial_juice: 1500, lostjuice: 30, currentVolume: 1470, liquidType: "Acetone" },
                     { id: 13, name: "Vessel V-602", capacity: 700, initial_juice: 500, lostjuice: 20, currentVolume: 480, liquidType: "Acetone" }
@@ -426,7 +432,8 @@
 
             const searchTerm = document.getElementById('searchField').value.toLowerCase();
             const filteredBatches = batches.filter(batch => 
-                batch.name.toLowerCase().includes(searchTerm)
+                batch.name.toLowerCase().includes(searchTerm) ||
+                (batch.tags && batch.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
             );
 
             filteredBatches.forEach(batch => {
@@ -458,19 +465,6 @@
                 .join('');
             div.innerHTML = `
                 <div class="p-4 border-b bg-gray-50">
-                    <div class="mb-2">
-                        <!-- Bar 1: Initial Juice Breakdown -->
-                        <div class="flex w-full h-4 rounded overflow-hidden mb-1 border">
-                            <div class="bg-blue-500 flex items-center justify-center text-[10px] text-white font-semibold cursor-help" style="width:${w(pressed)}%" title="Pressed Juice: ${pressed}L">${pressed > 0 ? pressed + 'L' : ''}</div>
-                            <div class="bg-green-400 flex items-center justify-center text-[10px] text-white font-semibold cursor-help" style="width:${w(freeRun)}%" title="Free Run Juice: ${freeRun}L">${freeRun > 0 ? freeRun + 'L' : ''}</div>
-                            <div class="bg-gray-200 flex items-center justify-center text-[10px] text-gray-700 font-semibold cursor-help" style="width:${w(empty1)}%" title="Empty Capacity: ${empty1}L">${empty1 > 0 ? empty1 + 'L' : ''}</div>
-                        </div>
-                        <div class="flex w-full h-4 rounded overflow-hidden border">
-                            <div class="bg-blue-500 flex items-center justify-center text-[10px] text-white font-semibold cursor-help" style="width:${w(remaining)}%" title="Remaining Juice: ${remaining}L">${remaining > 0 ? remaining + 'L' : ''}</div>
-                            <div class="bg-red-400 flex items-center justify-center text-[10px] text-white font-semibold cursor-help" style="width:${w(lost)}%" title="Lost Juice: ${lost}L">${lost > 0 ? lost + 'L' : ''}</div>
-                            <div class="bg-gray-200 flex items-center justify-center text-[10px] text-gray-700 font-semibold cursor-help" style="width:${w(empty2)}%" title="Empty Capacity: ${empty2}L">${empty2 > 0 ? empty2 + 'L' : ''}</div>
-                        </div>
-                    </div>
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <input
@@ -481,9 +475,7 @@
                             />
                             <div>
                                 <h3 class="font-semibold text-gray-900">${batch.name}</h3>
-                                <span class="inline-block px-2 py-1 text-xs rounded-full ${
-                                    batch.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                }">
+                                <span class="inline-block px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(batch.status)}">
                                     ${batch.status}
                                 </span>
                             </div>
@@ -510,6 +502,10 @@
                         <span><span class="font-semibold">Initial Total:</span> ${batch.total_initial_juice_quantity}L</span>
                         <span><span class="font-semibold">Lost:</span> ${batch.lost_juice}L</span>
                         <span><span class="font-semibold">Remaining:</span> ${batch.remaining_juice}L</span>
+                    </div>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                        ${batch.tags.map((tag, i) => `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs flex items-center">${tag}<button onclick="removeTag(${batch.id}, ${i})" class="ml-1 text-blue-500 hover:text-red-500">&times;</button></span>`).join('')}
+                        <input type="text" class="add-tag-input border rounded px-2 py-1 text-xs w-24" placeholder="Add tag..." data-batch-id="${batch.id}" onkeydown="if(event.key==='Enter'){addTag(${batch.id}, this.value); this.value=''; return false;}" />
                     </div>
                 </div>
                 <div class="p-4">
@@ -934,12 +930,11 @@
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
-            // Merge modal
-            document.getElementById('mergeBtn').addEventListener('click', () => {
-                document.getElementById('mergeModalText').textContent = 
-                    `Are you sure you want to merge ${selectedBatches.length} batches? This will create a new batch with all vessels combined.`;
-                showModal('mergeModal');
-            });
+            // Blend modal
+            document.getElementById('mergeBtn').innerHTML = document.getElementById('mergeBtn').innerHTML.replace(/Blend/g, 'Blend');
+            document.getElementById('mergeBtn').title = 'Blend Batches';
+            document.getElementById('mergeModal').querySelector('h2').textContent = 'Blend Batches';
+            document.getElementById('mergeModalText').textContent = document.getElementById('mergeModalText').textContent.replace(/blend/g, 'blend');
             
             document.getElementById('confirmMergeBtn').addEventListener('click', mergeBatches);
             document.getElementById('cancelMergeBtn').addEventListener('click', () => hideModal('mergeModal'));
@@ -1005,6 +1000,46 @@
             document.getElementById('confirmTransferBtn').disabled = !to || amount <= 0 || amount > maxAmount;
             document.getElementById('transferAmount').max = maxAmount;
         }
+
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'Pre-Fermentation': return 'bg-yellow-100 text-yellow-800';
+                case 'Fermentation': return 'bg-green-100 text-green-800';
+                case 'Post Fermentation': return 'bg-blue-100 text-blue-800';
+                case 'Aging': return 'bg-purple-100 text-purple-800';
+                case 'Blended': return 'bg-pink-100 text-pink-800';
+                case 'Bottled': return 'bg-gray-200 text-gray-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // Tag management
+        function addTag(batchId, tag) {
+            if (!tag.trim()) return;
+            const batch = batches.find(b => b.id === batchId);
+            if (!batch) return;
+            if (!batch.tags.includes(tag)) batch.tags.push(tag);
+            renderBatches();
+        }
+        function removeTag(batchId, tagIdx) {
+            const batch = batches.find(b => b.id === batchId);
+            if (!batch) return;
+            batch.tags.splice(tagIdx, 1);
+            renderBatches();
+        }
+        // Add event listener for tag input (Enter or comma)
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.classList.contains('add-tag-input')) {
+                e.target.addEventListener('keydown', function handler(ev) {
+                    if (ev.key === 'Enter' || ev.key === ',') {
+                        const batchId = parseInt(e.target.getAttribute('data-batch-id'));
+                        addTag(batchId, e.target.value.replace(/,$/, ''));
+                        e.target.value = '';
+                        ev.preventDefault();
+                    }
+                }, { once: true });
+            }
+        });
     </script>
 </body>
 </html>
