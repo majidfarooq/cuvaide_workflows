@@ -51,7 +51,7 @@ This section outlines how to set up and run the API on your local machine for de
     ```bash
     bin/rails s
     ```
-    The API will now be running at `http://localhost:3000`.
+    The API will now be running at `http://localhost:3001`.
 
 * For more detailed development information, please refer to the **Dev Guide**.
 
