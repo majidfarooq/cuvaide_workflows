@@ -8,7 +8,7 @@ Before you begin, ensure you have the following tools installed on your machine:
 
 * **Git**
 * **Docker** and **Docker Compose**
-* **Ruby** (version X.X.X)
+* **Ruby** (version 3.4.2)
 * **Bundler** (`gem install bundler`)
 * **Kamal** (`gem install kamal`) - Only required for local-to-prod deployment.
 * **Azure CLI** (`az`) - Only required for Azure deployment.
